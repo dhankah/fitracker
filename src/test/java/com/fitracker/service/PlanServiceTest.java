@@ -6,6 +6,9 @@ import com.fitracker.dto.WeeklyPlanResponse;
 import com.fitracker.entity.Exercise;
 import com.fitracker.entity.User;
 import com.fitracker.repository.ExerciseRepository;
+import com.fitracker.repository.PlanDayRepository;
+import com.fitracker.repository.PlanRepository;
+import com.fitracker.repository.SessionExerciseRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -24,6 +27,15 @@ class PlanServiceTest {
 
     @Mock
     private ExerciseRepository exerciseRepository;
+
+    @Mock
+    private PlanRepository planRepository;
+
+    @Mock
+    private SessionExerciseRepository sessionExerciseRepository;
+
+    @Mock
+    private PlanDayRepository planDayRepository;
 
     @Test
     void generatePlanForUser_shouldCreate7DayPlanWithExercises() {
