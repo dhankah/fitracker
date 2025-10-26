@@ -109,7 +109,7 @@ public class PlanService {
     private List<Exercise> pickRandom(List<Exercise> pool, int count, Random random) {
         List<Exercise> mutablePool = new ArrayList<>(pool);
         Collections.shuffle(mutablePool, random);
-        return pool.stream().limit(count).toList();
+        return mutablePool.stream().limit(count).toList();
     }
 
     private int adjustSets(int base, User user) {

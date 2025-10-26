@@ -65,53 +65,47 @@ public class WorkoutService {
     }
 
 
-    public WorkoutCompletionResponse completeWorkoutDay(WorkoutCompletionRequest request, Authentication authentication) {
+    public WorkoutCompletionResponse completeWorkoutDay(WorkoutCompletionRequest request, Authentication auth) {
         int completed = 0;
         int skipped = 0;
         int calories = 0;
 
-        Map<String, Double> deltaByGroup = new HashMap<>();
+        Map<String, Double> deltas = new HashMap<>();
+        UUID userId = userService.getCurrentUser(auth).getId();
 
         for (ExerciseResultDto result : request.getResults()) {
-            UUID sessionId = result.getSessionExerciseId();
-            String status = result.getStatus().toLowerCase();
+            var session = sessionExerciseRepository.findById(result.getSessionExerciseId())
+                    .orElseThrow(() -> new IllegalStateException("Session exercise not found: " + result.getSessionExerciseId()));
 
-            SessionExercise session = sessionExerciseRepository.findById(sessionId)
-                    .orElseThrow(() -> new IllegalStateException("Session exercise not found: " + sessionId));
-
-            session.setStatus(status);
+            session.setStatus(result.getStatus().toLowerCase());
             sessionExerciseRepository.save(session);
 
-            Exercise exercise = exerciseRepository.findById(session.getExerciseId())
+            var exercise = exerciseRepository.findById(session.getExerciseId())
                     .orElseThrow(() -> new IllegalStateException("Exercise not found: " + session.getExerciseId()));
 
             String group = exercise.getMuscleGroup();
+            String status = session.getStatus();
 
             if ("done".equals(status)) {
                 completed++;
                 calories += session.getEstimatedCalories();
-                deltaByGroup.merge(group, +0.05, Double::sum);
+                deltas.merge(group, 0.05, Double::sum);
             } else if ("skipped".equals(status)) {
                 skipped++;
-                deltaByGroup.merge(group, -0.03, Double::sum);
+                deltas.merge(group, -0.03, Double::sum);
             }
         }
 
-        var user = userService.getCurrentUser(authentication);
-        // updating coefficients
-        for (Map.Entry<String, Double> entry : deltaByGroup.entrySet()) {
-            String group = entry.getKey();
-            double delta = entry.getValue();
+        for (var entry : deltas.entrySet()) {
+            var coeff = coefficientRepository.findByUserIdAndMuscleGroup(userId, entry.getKey())
+                    .orElseGet(() -> new Coefficient(userId, entry.getKey(), 1.0));
 
-            Coefficient coeff = coefficientRepository.findByUserIdAndMuscleGroup(user.getId(), group)
-                    .orElseGet(() -> new Coefficient(user.getId(), group, 1.0));
-
-            double updated = Math.max(0.5, Math.min(2.0, coeff.getValue() + delta));
+            double updated = Math.max(0.5, Math.min(2.0, coeff.getValue() + entry.getValue()));
             coeff.setValue(updated);
             coefficientRepository.save(coeff);
         }
 
-        WorkoutCompletionResponse.Summary summary = new WorkoutCompletionResponse.Summary(completed, skipped, calories);
+        var summary = new WorkoutCompletionResponse.Summary(completed, skipped, calories);
         return new WorkoutCompletionResponse(request.getDate(), summary, true);
     }
 }
