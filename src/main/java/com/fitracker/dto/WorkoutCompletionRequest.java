@@ -1,5 +1,6 @@
 package com.fitracker.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WorkoutCompletionRequest {
+    @NotNull
     private LocalDate date;
     private List<ExerciseResultDto> results;
 }

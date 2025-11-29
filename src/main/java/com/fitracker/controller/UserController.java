@@ -5,23 +5,30 @@ import com.fitracker.dto.UserProfileResponse;
 import com.fitracker.entity.User;
 import com.fitracker.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/api/users")
 public class UserController {
 
-    @Autowired
     private UserService userService;
 
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getProfile(Authentication authentication) {
          User user = userService.getCurrentUser(authentication);
-         UserProfileResponse response = new UserProfileResponse(user.getId(), user.getEmail(), user.getWeightKg(), user.getHeightCm(),
-                 user.getAge(), user.getSex(), user.getGoal());
+         UserProfileResponse response = UserProfileResponse.builder()
+                 .id(user.getId())
+                 .email(user.getEmail())
+                 .weightKg(user.getWeightKg())
+                 .heightCm(user.getHeightCm())
+                 .age(user.getAge())
+                 .sex(user.getSex())
+                 .goal(user.getGoal())
+                 .build();
 
         return ResponseEntity.ok(response);
     }

@@ -2,7 +2,10 @@ package com.fitracker.service;
 
 import com.fitracker.dto.*;
 import com.fitracker.entity.*;
+import com.fitracker.exception.NotFoundException;
+import com.fitracker.mapper.SessionExerciseMapper;
 import com.fitracker.repository.*;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -12,53 +15,35 @@ import java.time.LocalDate;
 import java.util.*;
 
 @Service
+@AllArgsConstructor
 public class WorkoutService {
-    @Autowired
     private PlanRepository planRepository;
 
-    @Autowired
     private PlanDayRepository planDayRepository;
 
-    @Autowired
     private SessionExerciseRepository sessionExerciseRepository;
 
-    @Autowired
     private CoefficientRepository coefficientRepository;
 
-    @Autowired
     private ExerciseRepository exerciseRepository;
 
-    @Autowired
     private UserService userService;
+
+    private SessionExerciseMapper sessionExerciseMapper;
 
     public WorkoutDayResponse getWorkoutForDate(User user, LocalDate date) {
         LocalDate weekStart = date.with(DayOfWeek.MONDAY);
 
         UUID planId = planRepository.findIdByUserIdAndWeekStart(user.getId(), weekStart)
-                .orElseThrow(() -> new IllegalStateException("No plan found for this week"));
+                .orElseThrow(() -> new NotFoundException("No plan found for this week"));
 
         UUID dayId = planDayRepository.findIdByPlanIdAndDate(planId, date)
-                .orElseThrow(() -> new IllegalStateException("No workout scheduled for this day"));
+                .orElseThrow(() -> new NotFoundException("No workout scheduled for this day"));
 
         List<SessionExercise> sessionExercises = sessionExerciseRepository.findByPlanDayId(dayId);
 
         List<SessionExerciseDto> dtos = sessionExercises.stream()
-                .map(se -> {
-                    Exercise e = exerciseRepository.findById(se.getExerciseId())
-                            .orElseThrow(() -> new IllegalStateException("Exercise not found: " + se.getExerciseId()));
-
-                    return new SessionExerciseDto(
-                            se.getId(),
-                            se.getExerciseId(),
-                            e.getName(),
-                            e.getMuscleGroup(),
-                            se.getSets(),
-                            se.getReps(),
-                            se.getWeightKg(),
-                            se.getEstimatedCalories(),
-                            se.getStatus()
-                    );
-                })
+                .map(se -> sessionExerciseMapper.mapToDto(se))
                 .toList();
 
         return new WorkoutDayResponse(date, planId, dtos);
@@ -75,24 +60,29 @@ public class WorkoutService {
 
         for (ExerciseResultDto result : request.getResults()) {
             var session = sessionExerciseRepository.findById(result.getSessionExerciseId())
-                    .orElseThrow(() -> new IllegalStateException("Session exercise not found: " + result.getSessionExerciseId()));
+                    .orElseThrow(() -> new NotFoundException("Session exercise not found: " + result.getSessionExerciseId()));
 
             session.setStatus(result.getStatus().toLowerCase());
             sessionExerciseRepository.save(session);
 
             var exercise = exerciseRepository.findById(session.getExerciseId())
-                    .orElseThrow(() -> new IllegalStateException("Exercise not found: " + session.getExerciseId()));
+                    .orElseThrow(() -> new NotFoundException("Exercise not found: " + session.getExerciseId()));
 
             String group = exercise.getMuscleGroup();
             String status = session.getStatus();
 
-            if ("done".equals(status)) {
-                completed++;
-                calories += session.getEstimatedCalories();
-                deltas.merge(group, 0.05, Double::sum);
-            } else if ("skipped".equals(status)) {
-                skipped++;
-                deltas.merge(group, -0.03, Double::sum);
+            switch (status) {
+                case "done":
+                    completed++;
+                    calories += session.getEstimatedCalories();
+                    deltas.merge(group, 0.05, Double::sum);
+                    break;
+                case "skipped":
+                    skipped++;
+                    deltas.merge(group, -0.03, Double::sum);
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + status);
             }
         }
 
@@ -106,6 +96,6 @@ public class WorkoutService {
         }
 
         var summary = new WorkoutCompletionResponse.Summary(completed, skipped, calories);
-        return new WorkoutCompletionResponse(request.getDate(), summary, true);
+        return new WorkoutCompletionResponse(request.getDate(), summary);
     }
 }

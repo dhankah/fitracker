@@ -2,15 +2,17 @@ package com.fitracker.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Entity
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "session_exercises")
 public class SessionExercise {
 
@@ -26,6 +28,10 @@ public class SessionExercise {
 
     @Column(name = "exercise_id", nullable = false)
     private String exerciseId;
+
+    @ManyToOne
+    @JoinColumn(name = "exercise_id", insertable=false, updatable=false)
+    private Exercise exercise;
 
     private int sets;
     private int reps;

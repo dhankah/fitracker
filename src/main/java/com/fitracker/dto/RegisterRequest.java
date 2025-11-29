@@ -17,12 +17,15 @@ public class RegisterRequest {
     private String password;
 
     @NotNull
+    @Positive
     private Double weightKg;
 
     @NotNull
+    @Positive
     private Integer heightCm;
 
     @NotNull
+    @Positive
     private Integer age;
 
     @Pattern(regexp = "male|female")

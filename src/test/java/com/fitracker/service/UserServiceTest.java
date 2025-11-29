@@ -2,6 +2,7 @@ package com.fitracker.service;
 
 import com.fitracker.dto.UpdateProfileRequest;
 import com.fitracker.entity.User;
+import com.fitracker.mapper.UserMapper;
 import com.fitracker.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,9 +15,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.any;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,6 +31,9 @@ class UserServiceTest {
 
     @Mock
     private Authentication authentication;
+
+    @Mock
+    private UserMapper userMapper;
 
     @Test
     void getCurrentUser_shouldReturnUserByEmail() {
@@ -61,7 +65,7 @@ class UserServiceTest {
     }
 
     @Test
-    void updateProfile_shouldUpdateOnlyProvidedFields() {
+    void updateProfile_shouldCallMapper() {
         // Given
         String email = "test@example.com";
         User user = new User();
@@ -83,8 +87,6 @@ class UserServiceTest {
         User updated = userService.updateProfile(authentication, request);
 
         // Then
-        assertEquals(75.0, updated.getWeightKg());
-        assertEquals(175, updated.getHeightCm()); // unchanged
-        assertEquals("male", updated.getSex());   // unchanged
+        verify(userMapper).populateUser(user, request);
     }
 }

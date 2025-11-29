@@ -12,7 +12,6 @@ import java.time.LocalDate;
 public class WorkoutCompletionResponse {
     private LocalDate date;
     private Summary summary;
-    private boolean adjustmentQueued;
 
     @Data
     @NoArgsConstructor

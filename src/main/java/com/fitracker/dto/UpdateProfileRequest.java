@@ -1,6 +1,7 @@
 package com.fitracker.dto;
 
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -10,8 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UpdateProfileRequest {
 
+    @Positive
     private Double weightKg;
+    @Positive
     private Integer heightCm;
+    @Positive
     private Integer age;
 
     @Pattern(regexp = "male|female")

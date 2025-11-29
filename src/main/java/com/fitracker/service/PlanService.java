@@ -4,10 +4,12 @@ import com.fitracker.dto.ExerciseDto;
 import com.fitracker.dto.PlanDayDto;
 import com.fitracker.dto.WeeklyPlanResponse;
 import com.fitracker.entity.*;
+import com.fitracker.mapper.SessionExerciseMapper;
 import com.fitracker.repository.ExerciseRepository;
 import com.fitracker.repository.PlanDayRepository;
 import com.fitracker.repository.PlanRepository;
 import com.fitracker.repository.SessionExerciseRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -20,19 +22,18 @@ import java.util.UUID;
 import java.util.Collections;
 
 @Service
+@AllArgsConstructor
 public class PlanService {
 
-    @Autowired
     private ExerciseRepository exerciseRepository;
 
-    @Autowired
     private PlanRepository planRepository;
 
-    @Autowired
     private PlanDayRepository planDayRepository;
 
-    @Autowired
     private SessionExerciseRepository sessionExerciseRepository;
+
+    private SessionExerciseMapper sessionExerciseMapper;
 
     public WeeklyPlanResponse generatePlanForUser(User user) {
         UUID planId = UUID.randomUUID();
@@ -41,10 +42,11 @@ public class PlanService {
         List<String> targetGroups = getTargetMuscleGroups(user.getGoal());
         List<Exercise> pool = exerciseRepository.findByMuscleGroupIn(targetGroups);
 
-        Plan planEntity = new Plan();
-        planEntity.setId(planId);
-        planEntity.setUserId(user.getId());
-        planEntity.setWeekStart(weekStart);
+        Plan planEntity = Plan.builder()
+                .id(planId)
+                .userId(user.getId())
+                .weekStart(weekStart)
+                .build();
 
         planRepository.save(planEntity);
 
@@ -55,10 +57,11 @@ public class PlanService {
             LocalDate date = weekStart.plusDays(i);
             UUID dayId = UUID.randomUUID();
 
-            PlanDay dayEntity = new PlanDay();
-            dayEntity.setId(dayId);
-            dayEntity.setDate(date);
-            dayEntity.setPlan(planEntity);
+            PlanDay dayEntity = PlanDay.builder()
+                    .id(dayId)
+                    .plan(planEntity)
+                    .date(date)
+                    .build();
 
             planDayRepository.save(dayEntity);
 
@@ -67,15 +70,7 @@ public class PlanService {
             if (i % 2 == 0) {
                 List<Exercise> selected = pickRandom(pool, 3, random);
                 for (Exercise e : selected) {
-                    SessionExercise se = new SessionExercise();
-                    se.setId(UUID.randomUUID());
-                    se.setPlanDayId(dayId);
-                    se.setExerciseId(e.getId());
-                    se.setSets(adjustSets(e.getBaseSets(), user));
-                    se.setReps(adjustReps(e.getBaseReps(), user));
-                    se.setWeightKg(adjustWeight(e.getBaseWeightKg(), user));
-                    se.setEstimatedCalories(e.getBaseCalories());
-                    se.setStatus("pending");
+                    var se = sessionExerciseMapper.buildFromExercise(e, user, dayId);
 
                     sessionExerciseRepository.save(se);
 
@@ -110,17 +105,5 @@ public class PlanService {
         List<Exercise> mutablePool = new ArrayList<>(pool);
         Collections.shuffle(mutablePool, random);
         return mutablePool.stream().limit(count).toList();
-    }
-
-    private int adjustSets(int base, User user) {
-        return base + (user.getGoal().equals("gain") ? 1 : 0);
-    }
-
-    private int adjustReps(int base, User user) {
-        return base + (user.getGoal().equals("endurance") ? 4 : 0);
-    }
-
-    private double adjustWeight(double base, User user) {
-        return user.getGoal().equals("gain") ? base * 1.2 : base;
     }
 }

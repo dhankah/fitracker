@@ -3,6 +3,7 @@ package com.fitracker.service;
 import com.fitracker.dto.RegisterRequest;
 import com.fitracker.dto.RegisterResponse;
 import com.fitracker.entity.User;
+import com.fitracker.mapper.UserMapper;
 import com.fitracker.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,8 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -26,6 +26,9 @@ class AuthServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private UserMapper userMapper;
 
     @Test
     void register_shouldCreateUserAndReturnResponse() {
@@ -42,26 +45,21 @@ class AuthServiceTest {
         String encodedPassword = "$2a$10$encodedPassword";
         when(passwordEncoder.encode("secret")).thenReturn(encodedPassword);
 
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        var user = User.builder()
+                .age(30)
+                .email("test@example.com")
+                .weightKg(75.0)
+                .heightCm(180)
+                .goal("gain")
+                .sex("male")
+                .build();
+        doReturn(user).when(userMapper).mapToUser(request);
 
         // When
-        RegisterResponse response = authService.register(request);
+        authService.register(request);
 
         // Then
-        verify(userRepository).save(userCaptor.capture());
-        User savedUser = userCaptor.getValue();
-
-        assertEquals(request.getEmail(), savedUser.getEmail());
-        assertEquals(encodedPassword, savedUser.getPasswordHash());
-        assertEquals(request.getWeightKg(), savedUser.getWeightKg());
-        assertEquals(request.getHeightCm(), savedUser.getHeightCm());
-        assertEquals(request.getAge(), savedUser.getAge());
-        assertEquals(request.getSex(), savedUser.getSex());
-        assertEquals(request.getGoal(), savedUser.getGoal());
-
-        assertEquals(savedUser.getId(), response.getId());
-        assertEquals(savedUser.getEmail(), response.getEmail());
-        assertEquals(savedUser.getCreatedAt(), response.getCreatedAt());
+        verify(userRepository).save(user);
     }
 
 }

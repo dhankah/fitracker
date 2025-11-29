@@ -6,6 +6,8 @@ import com.fitracker.dto.WorkoutDayResponse;
 import com.fitracker.entity.User;
 import com.fitracker.service.UserService;
 import com.fitracker.service.WorkoutService;
+import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -16,13 +18,10 @@ import java.time.LocalDate;
 
 
 @RestController
+@AllArgsConstructor
 @RequestMapping("/api/workouts")
 public class WorkoutController {
-
-    @Autowired
     private WorkoutService workoutService;
-
-    @Autowired
     private UserService userService;
 
     @GetMapping("/day")
@@ -38,7 +37,7 @@ public class WorkoutController {
 
     @PostMapping("/day/complete")
     public ResponseEntity<WorkoutCompletionResponse> completeWorkoutDay(Authentication authentication,
-            @RequestBody WorkoutCompletionRequest request) {
+            @Valid @RequestBody WorkoutCompletionRequest request) {
         WorkoutCompletionResponse response = workoutService.completeWorkoutDay(request, authentication);
         return ResponseEntity.ok(response);
     }
