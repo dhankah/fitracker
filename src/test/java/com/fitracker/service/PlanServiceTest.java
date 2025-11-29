@@ -1,7 +1,5 @@
 package com.fitracker.service;
 
-import com.fitracker.dto.ExerciseDto;
-import com.fitracker.dto.PlanDayDto;
 import com.fitracker.dto.WeeklyPlanResponse;
 import com.fitracker.entity.Exercise;
 import com.fitracker.entity.SessionExercise;
